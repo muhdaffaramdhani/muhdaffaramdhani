@@ -62,6 +62,23 @@ if SHARPEN:
     im = im.filter(ImageFilter.UnsharpMask(radius=2, percent=140, threshold=2))
 im = ImageEnhance.Brightness(im).enhance(BRIGHTNESS)
 im = ImageEnhance.Contrast(im).enhance(CONTRAST)
+
+# center-crop to the canvas's aspect ratio BEFORE resizing, so tall/wide source
+# photos don't get squashed into the (near-square) character grid.
+target_ratio = ART_W / ART_H          # e.g. ~1.0 for COLS=100/ROWS=53, CELL 8x15
+src_w, src_h = im.size
+src_ratio = src_w / src_h
+if src_ratio > target_ratio:
+    # source too wide -> crop left/right
+    new_w = int(src_h * target_ratio)
+    x0 = (src_w - new_w) // 2
+    im = im.crop((x0, 0, x0 + new_w, src_h))
+else:
+    # source too tall -> crop top/bottom (bias slightly upward to keep the face)
+    new_h = int(src_w / target_ratio)
+    y0 = max(0, (src_h - new_h) // 3)
+    im = im.crop((0, y0, src_w, y0 + new_h))
+
 im = im.resize((COLS, ROWS), Image.LANCZOS)
 px = im.load()
 
